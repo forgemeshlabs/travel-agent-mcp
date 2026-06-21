@@ -1,7 +1,7 @@
 {
   "name": "@forgemeshlabs/travel-agent-mcp",
   "version": "0.1.0",
-  "description": "AI travel agent MCP with no-key planning tools and x402 fare-intelligence handoff.",
+  "description": "AI travel agent MCP with FREE category discovery, creator experiences, day-trip and weekend planning, transit options, airport comparisons, timing advice, coverage requests, and x402 trip price guidance.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --cache=false",
     "typecheck": "tsc --noEmit"
   },
   "files": [
@@ -32,9 +32,13 @@
     "model-context-protocol",
     "travel",
     "travel-agent",
+    "travel-advice",
     "flights",
     "travel-search",
     "travel-planning",
+    "day-trip",
+    "weekend",
+    "transit",
     "booking-partners",
     "forgemesh"
   ],

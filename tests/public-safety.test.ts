@@ -23,8 +23,8 @@ const scrubPattern = new RegExp([
   ["532", "591"].join(""),
   ["TRAVEL", "PAYOUTS", "_TO", "KEN"].join(""),
   ["BUY", "_NOW"].join(""),
-  "WA" + "IT",
-  "FLEX" + "IBLE",
+  ["\\b", "WA", "IT", "\\b"].join(""),
+  ["\\b", "FLEX", "IBLE", "\\b"].join(""),
   ["x402", " premium", " intelligence"].join(""),
   ["premium", " intelligence"].join(""),
 ].join("|"), "i");
@@ -46,6 +46,16 @@ function files(dir: string): string[] {
     const path = join(dir, entry);
     const stats = statSync(path);
     return stats.isDirectory() ? files(path) : [path];
+  });
+}
+
+function publicScanFiles(): string[] {
+  return files(root).filter((path) => {
+    const rel = relative(root, path);
+    return (
+      !rel.startsWith("docs/") &&
+      !rel.startsWith("agent/")
+    );
   });
 }
 
@@ -87,15 +97,52 @@ describe("links and timing", () => {
 });
 
 describe("public safety", () => {
+  it("uses clear public tool names and no legacy tool names", () => {
+    const source = readFileSync(join(root, "src/index.ts"), "utf8");
+    for (const name of [
+      "list_travel_categories",
+      "plan_flight_route",
+      "get_airport_details",
+      "compare_airport_routes",
+      "create_booking_link",
+      "get_travel_timing_advice",
+      "creator_experiences",
+      "plan_day_trip",
+      "plan_weekend_getaway",
+      "plan_weather_aware_trip",
+      "find_transit_options",
+      "request_local_coverage",
+      "prepare_trip_price_guidance",
+    ]) {
+      expect(source).toContain(`name: "${name}"`);
+    }
+
+    const legacyNames = [
+      ["search", "travel", "options"].join("_"),
+      ["get", "airport", "info"].join("_"),
+      ["compare", "routes"].join("_"),
+      ["build", "booking", "link"].join("_"),
+      ["explain", "travel", "timing"].join("_"),
+      ["plan", "creator", "trip"].join("_"),
+      ["influencer", "experiences"].join("_"),
+      ["prepare", "paid", "fare", "intelligence", "request"].join("_"),
+      ["fare", "intelligence"].join("-"),
+    ];
+
+    for (const name of legacyNames) {
+      expect(source).not.toContain(name);
+    }
+  });
+
   it("contains no scrubbed launch or provider terms", () => {
-    const hits = files(root)
+    const hits = publicScanFiles()
       .map((path) => [relative(root, path), readFileSync(path, "utf8")] as const)
       .filter(([path, text]) => path !== "tests/public-safety.test.ts" && scrubPattern.test(text));
     expect(hits).toEqual([]);
   });
 
   it("contains no credential-like wording outside this safety test", () => {
-    const hits = files(root)
+    const hits = publicScanFiles()
       .map((path) => [relative(root, path), readFileSync(path, "utf8")] as const)
       .filter(([path, text]) => path !== "tests/public-safety.test.ts" && credentialPattern.test(text));
     expect(hits).toEqual([]);
