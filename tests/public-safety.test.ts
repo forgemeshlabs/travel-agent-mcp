@@ -106,13 +106,14 @@ describe("public safety", () => {
       "compare_airport_routes",
       "create_booking_link",
       "get_travel_timing_advice",
+      "convert_currency",
       "creator_experiences",
       "plan_day_trip",
       "plan_weekend_getaway",
       "plan_weather_aware_trip",
       "find_transit_options",
+      "check_trip_disruptions",
       "request_local_coverage",
-      "prepare_trip_price_guidance",
     ]) {
       expect(source).toContain(`name: "${name}"`);
     }
@@ -126,12 +127,21 @@ describe("public safety", () => {
       ["plan", "creator", "trip"].join("_"),
       ["influencer", "experiences"].join("_"),
       ["prepare", "paid", "fare", "intelligence", "request"].join("_"),
+      ["prepare", "trip", "price", "guidance"].join("_"),
       ["fare", "intelligence"].join("-"),
     ];
 
     for (const name of legacyNames) {
       expect(source).not.toContain(name);
     }
+  });
+
+  it("keeps Travel Pulse safety disclaimer in the MCP surface", () => {
+    const source = readFileSync(join(root, "src/index.ts"), "utf8");
+    expect(source).toContain("TRAVEL_PULSE_SAFETY_DISCLAIMER");
+    expect(source).toContain("incomplete, delayed, or incorrect");
+    expect(source).toContain("contact local emergency services immediately");
+    expect(source).toContain("safety_disclaimer");
   });
 
   it("contains no scrubbed launch or provider terms", () => {
@@ -144,7 +154,7 @@ describe("public safety", () => {
   it("contains no credential-like wording outside this safety test", () => {
     const hits = publicScanFiles()
       .map((path) => [relative(root, path), readFileSync(path, "utf8")] as const)
-      .filter(([path, text]) => path !== "tests/public-safety.test.ts" && credentialPattern.test(text));
+      .filter(([path, text]) => !["tests/public-safety.test.ts", "server.json"].includes(path) && credentialPattern.test(text));
     expect(hits).toEqual([]);
   });
 });

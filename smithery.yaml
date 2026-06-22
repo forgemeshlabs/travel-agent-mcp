@@ -1,0 +1,18 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      travelAgentServerUrl:
+        type: string
+        description: Optional ForgeMesh travel-agent backend base URL override. Defaults to https://travel-agent.forgemesh.io.
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@forgemeshlabs/travel-agent-mcp'],
+      env: {
+        TRAVEL_AGENT_SERVER_URL: config.travelAgentServerUrl || 'https://travel-agent.forgemesh.io'
+      }
+    })
+  exampleConfig:
+    travelAgentServerUrl: 'https://travel-agent.forgemesh.io'

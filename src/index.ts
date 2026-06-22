@@ -17,115 +17,15 @@ const RESPONSE_BASE = {
 } as const;
 
 const TRAVEL_AGENT_SERVER_BASE_URL = (process.env.TRAVEL_AGENT_SERVER_URL ?? "https://travel-agent.forgemesh.io").replace(/\/+$/, "");
-const TRIP_PRICE_GUIDANCE_BASE_URL = "https://travel-agent.forgemesh.io/api/trip-price-guidance";
-const TRIP_PRICE_GUIDANCE_PRICE = "$0.10";
-const TRIP_PRICE_GUIDANCE_NETWORK = "base";
-const CREATOR_EXPERIENCES_PRICE = "$0.05";
+const X402_NETWORK = "base";
+const CREATOR_EXPERIENCES_PRICE = "$0.25";
 const DAY_TRIP_PRICE = "$0.10";
 const WEEKEND_GETAWAY_PRICE = "$0.25";
 const WEATHER_AWARE_PRICE = "$0.03";
 const MOBILITY_OPTIONS_PRICE = "$0.01";
-
-const TRAVEL_CATEGORIES = [
-  {
-    id: "day_trip",
-    name: "Day trips",
-    status: "available",
-    summary: "Shape a planned or spur-of-the-moment day trip with timing, transit-aware route strategy, transportation options, weather fit, food stops, backup options, and things to consider before deciding.",
-    example_asks: [
-      "What can we do within two hours this Saturday?",
-      "Find a low-cost day trip with views, food, and an easy drive.",
-    ],
-  },
-  {
-    id: "weekend_getaway",
-    name: "Weekend getaways",
-    status: "available",
-    summary: "Shape a short overnight escape with destination fit, timing, transportation options, lodging posture, weather exposure, food needs, and things to consider before booking.",
-    example_asks: [
-      "Plan a calm weekend within two hours of Houston.",
-      "Find a waterfront weekend that feels easy and not overpacked.",
-    ],
-  },
-  {
-    id: "weather_aware_planning",
-    name: "Weather-aware planning",
-    status: "available",
-    summary: "Consider rain, heat, wind, timing, and indoor backups while shaping day trips, scenic routes, creator plans, and outdoor-heavy itineraries.",
-    example_asks: [
-      "What should I keep in mind if the forecast changes?",
-      "Help me keep an outdoor plan easy to adjust if the weather turns.",
-    ],
-  },
-  {
-    id: "transit_options",
-    name: "Transit and mobility options",
-    status: "available",
-    summary: "Find location-relevant public transit, rail, ferry, bike/scooter-style, trail, and novelty mobility options to seed a richer trip plan.",
-    example_asks: [
-      "What transit or ferry options fit this part of town?",
-      "Give me the best mobility options for a car-light trip.",
-    ],
-  },
-  {
-      id: "request_coverage",
-    name: "Request coverage",
-    status: "available",
-    summary: "Ask ForgeMesh to add a town, neighborhood, local ritual, free local experience, or source set for future creator-ready local opportunity signals.",
-    example_asks: [
-      "Add Santa Cruz sunset-walk rituals to coverage.",
-      "Track free local experiences around a town I care about.",
-    ],
-  },
-  {
-    id: "creator_experiences",
-    name: "Creator experiences",
-    status: "available",
-    summary: "Shape a trip around story, visuals, timing, easy movement, and content moments that feel worth sharing.",
-    example_asks: [
-      "Plan a photogenic weekend in Lisbon for short-form video.",
-      "Give me an influencer-friendly day plan with sunrise, food, and a strong ending.",
-    ],
-  },
-  {
-    id: "local_timing",
-    name: "Timing and weather",
-    status: "available",
-    summary: "Get practical travel timing guidance so plans feel calmer, smoother, and less rushed.",
-    example_asks: [
-      "How early should I arrive for this trip?",
-      "When is this route usually easier to book?",
-    ],
-  },
-  {
-    id: "currency_exchange",
-    name: "Currency exchange",
-    status: "coming_soon",
-    summary: "Consider exchange rates, card fees, cash needs, local payment habits, tipping norms, and budget impact before spending across currencies.",
-    example_asks: [
-      "What should I consider before spending USD in Lisbon?",
-      "Help me think through cash, card fees, and exchange rates for Japan.",
-    ],
-  },
-] as const;
-
-function buildTripPriceGuidanceUrl(params: {
-  origin: string;
-  destination: string;
-  departure_at?: string;
-  return_at?: string;
-  currency?: string;
-  market?: string;
-}) {
-  const search = new URLSearchParams();
-  search.set("origin", params.origin.toUpperCase());
-  search.set("destination", params.destination.toUpperCase());
-  if (params.departure_at) search.set("departure_at", params.departure_at);
-  if (params.return_at) search.set("return_at", params.return_at);
-  search.set("currency", (params.currency ?? "USD").toUpperCase());
-  search.set("market", (params.market ?? "us").toLowerCase());
-  return `${TRIP_PRICE_GUIDANCE_BASE_URL}?${search.toString()}`;
-}
+const TRAVEL_PULSE_PRICE = "$0.01";
+const TRAVEL_PULSE_SAFETY_DISCLAIMER =
+  "Travel Pulse is informational travel-risk awareness only. Results can be incomplete, delayed, or incorrect. Verify important safety decisions with official government, weather, transportation, venue, and emergency sources. In an emergency, contact local emergency services immediately.";
 
 function buildServerUrl(path: string, params: Record<string, unknown> = {}) {
   const url = new URL(path, TRAVEL_AGENT_SERVER_BASE_URL);
@@ -209,7 +109,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "list_travel_categories",
       description:
-        "FREE overview of the top-level travel services this MCP can help with: day trips, flights, cars and road trips, lodging, experiences, and timing. Use this first when a traveler or agent wants to discover what is possible. Read-only, no account setup, no booking side effects.",
+        "FREE live category guide from the ForgeMesh travel-agent backend. Use this first to see the available travel flows and choose the next useful call: free airport/timing/coverage tools or paid x402 planning services. Read-only, no account setup, no booking side effects.",
       annotations: READ_ONLY_LOCAL_TOOL,
       inputSchema: {
         type: "object",
@@ -236,7 +136,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "get_airport_details",
-      description: "Look up details for one airport by IATA code. Use to validate or explain a single airport before route planning; use plan_flight_route for an actual trip route and compare_airport_routes for multiple origin-destination pairs. Read-only, no account setup, no external booking links, and no booking side effects.",
+      description: "FREE look up details for one airport by IATA code. Use to validate or explain a single airport before route planning; use plan_flight_route for an actual trip route and compare_airport_routes for multiple origin-destination pairs. Read-only, no account setup, no external booking links, and no booking side effects.",
       annotations: READ_ONLY_LOCAL_TOOL,
       inputSchema: {
         type: "object",
@@ -287,7 +187,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "get_travel_timing_advice",
-      description: "Get practical travel timing advice, including booking windows, airport arrival timing, layovers, and seasonal considerations. Use for questions like when to book or how early to arrive; use plan_flight_route when the traveler wants route planning. Read-only, no account setup, no external booking link, and no booking side effects.",
+      description: "FREE practical travel timing advice, including booking windows, airport arrival timing, layovers, and seasonal considerations. Use for questions like when to book or how early to arrive; use plan_flight_route when the traveler wants route planning. Read-only, no account setup, no external booking link, and no booking side effects.",
       annotations: READ_ONLY_LOCAL_TOOL,
       inputSchema: {
         type: "object",
@@ -299,9 +199,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "convert_currency",
+      description:
+        "FREE live reference-rate currency conversion from the ForgeMesh travel-agent backend. Use when a traveler or agent needs quick spending context before deciding whether to ask for richer x402 trip guidance. Read-only, no account setup, no payment, and not a transaction quote.",
+      annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
+      inputSchema: {
+        type: "object",
+        properties: {
+          amount: { type: "number", description: "Amount to convert. Default: 1." },
+          from: { type: "string", description: "Source ISO 4217 currency code, such as USD." },
+          to: { type: "string", description: "Target ISO 4217 currency code, such as EUR." },
+          date: { type: "string", description: "Optional reference date in YYYY-MM-DD format when supported by the backend." },
+        },
+        required: ["from", "to"],
+      },
+    },
+    {
       name: "creator_experiences",
       description:
-        "Prepare a paid creator experience planning request for travelers, creators, influencers, and agents planning a shareable day trip, weekend, layover, or destination story. Use when the traveler cares about visuals, story, timing, food stops, scenic movement, weather-aware backups, or content moments. This tool returns endpoint and x402 metadata; it does not complete payment itself.",
+        "Connect to the live paid x402 creator-experience service for travelers, creators, influencers, and agents planning a shareable day trip, weekend, layover, or destination story. Use when the traveler cares about visuals, story, timing, food stops, scenic movement, weather-aware backups, or content moments. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -322,7 +238,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_day_trip",
       description:
-        "Prepare or fetch a live day-trip planning request for a destination, route, or origin-based ask. Use when a traveler wants a relaxed day out with timing, water, food, transit, weather, and backup options. This tool returns backend endpoint details and may include planning output from the live server.",
+        "Connect to the live paid x402 day-trip service for a destination, route, or origin-based ask. Use when a traveler wants a relaxed day out with timing, water, food, transit, weather, and backup options. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -348,7 +264,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weekend_getaway",
       description:
-        "Prepare or fetch a live weekend getaway planning request for a short overnight escape. Use when the traveler wants a calmer decision brief with lodging posture, water/weather fit, transportation, and easy backup ideas. This tool returns backend endpoint details and may include planning output from the live server.",
+        "Connect to the live paid x402 weekend-getaway service for a short overnight escape. Use when the traveler wants a calmer planning brief with lodging posture, water/weather fit, transportation, and easy backup ideas. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -372,7 +288,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weather_aware_trip",
       description:
-        "Prepare or fetch a live weather-aware planning request for a destination or coordinate pair. Use when the traveler wants rain, heat, wind, and indoor backup awareness before committing to outdoor time.",
+        "Connect to the live paid x402 weather-aware planning service for a destination or coordinate pair. Use when the traveler wants rain, heat, wind, and indoor backup awareness before committing to outdoor time.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -392,7 +308,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "find_transit_options",
       description:
-        "Prepare or fetch a live mobility-options request for a location and transportation type. Use when the traveler wants transit, rail, ferry, trails, bike/scooter options, or a location-filtered short list before planning the rest of the trip.",
+        "Connect to the live paid x402 mobility-options service for a location and transportation type. Use when the traveler wants transit, rail, ferry, trails, bike/scooter options, or a location-filtered short list before planning the rest of the trip.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -407,9 +323,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "check_trip_disruptions",
+      description:
+        "Check for travel disruptions before departure or during a trip with the live paid x402 Travel Pulse service. Each $0.01 call is one on-demand disruption and emergency-awareness check: an agent can run it before the traveler leaves, then call it again during the trip if the user wants hourly, daily, or event-driven updates. Use for weather alerts, natural events, water/flood context, route or destination disruption awareness, travel-risk awareness, and calm backup considerations. Informational only: results can be incomplete, delayed, or incorrect. Not emergency services, not staffed monitoring, and not a substitute for official instructions or local emergency authorities.",
+      annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
+      inputSchema: {
+        type: "object",
+        properties: {
+          destination: { type: "string", description: "Destination, city, region, route, airport area, or place to check." },
+          origin: { type: "string", description: "Optional origin or route start." },
+          lat: { type: "string", description: "Latitude for a point-specific pulse check." },
+          lon: { type: "string", description: "Longitude for a point-specific pulse check." },
+          trip_date: { type: "string", description: "Trip date in YYYY-MM-DD format, if known." },
+          time_window: { type: "string", description: "Relevant window, such as before departure, next 3 hours, today, overnight, or during trip." },
+          check_reason: { type: "string", description: "Why the agent is checking, such as pre_trip, repeat_trip_check, weather_shift, event_day, or traveler_check_in." },
+          water_site: { type: "string", description: "Optional water gauge/site id when the traveler cares about flood or river context." },
+        },
+        required: [],
+      },
+    },
+    {
       name: "request_local_coverage",
       description:
-        "Submit a free coverage request for a town, neighborhood, local ritual, free experience, or source set that should be added to future travel planning. Use this when you want the system to learn a place's local vibe, freebie list, sunset walk, or opening-soon pattern.",
+        "FREE live backend call for requesting coverage for a town, neighborhood, local ritual, free experience, or source set. Use this when you want the system to remember a place worth watching: local vibe, freebie list, sunset walk, opening-soon pattern, or creator angle.",
       annotations: READ_ONLY_LOCAL_TOOL,
       inputSchema: {
         type: "object",
@@ -432,23 +368,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: [],
       },
     },
-    {
-      name: "prepare_trip_price_guidance",
-      description: "Prepare a paid x402 trip price guidance request for a specific flight route. Use when a traveler wants a clear book-or-hold style recommendation, price context, and confidence summary, and the client can complete x402 payment. This tool does not complete payment itself; it returns the public endpoint URL, price, network, and request metadata. Read-only, no account setup inside the MCP server, no booking side effects.",
-      annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
-      inputSchema: {
-        type: "object",
-        properties: {
-          origin: { type: "string", description: "Origin airport IATA code (e.g. 'JFK'). Case-insensitive." },
-          destination: { type: "string", description: "Destination airport IATA code (e.g. 'LAX'). Case-insensitive." },
-          departure_at: { type: "string", description: "Departure date or month in YYYY-MM-DD or YYYY-MM format. Optional." },
-          return_at: { type: "string", description: "Return date or month in YYYY-MM-DD or YYYY-MM format. Optional for one-way trips." },
-          currency: { type: "string", description: "ISO 4217 currency code (default: USD)." },
-          market: { type: "string", description: "ISO 3166-1 market code (default: us)." },
-        },
-        required: ["origin", "destination"],
-      },
-    },
   ],
 }));
 
@@ -469,27 +388,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             best_first_steps: [
               "Use plan_flight_route for a known airport-to-airport trip.",
               "Use compare_airport_routes when nearby airports could save time, stress, or money.",
+              "Use convert_currency for free reference-rate spending context.",
+              "Use request_local_coverage when a place, ritual, or creator angle should be watched for future travel planning.",
+              "Use check_trip_disruptions before departure, then call it again during the trip when the user wants quick disruption or emergency awareness.",
               "Use creator_experiences when the traveler wants a story-led day trip, weekend, layover, or shareable route.",
-              "Use prepare_trip_price_guidance when the client can complete x402 payment for paid trip price guidance.",
+              "Use plan_day_trip, plan_weekend_getaway, plan_weather_aware_trip, find_transit_options, or check_trip_disruptions when the client can complete x402 payment.",
             ],
           },
         });
       }
 
       return textResponse({
-        ok: true,
+        ok: false,
         ...RESPONSE_BASE,
         free: true,
         results: {
-          categories: TRAVEL_CATEGORIES,
-          best_first_steps: [
-            "Use plan_flight_route for a known airport-to-airport trip.",
-            "Use compare_airport_routes when nearby airports could save time, stress, or money.",
-            "Use get_travel_timing_advice when the traveler is unsure when to book or how early to arrive.",
-            "Day trips and experiences are the next major service areas.",
-          ],
+          backend: "travel-agent-server",
+          endpoint: `${TRAVEL_AGENT_SERVER_BASE_URL}/api/categories`,
+          request_url: buildServerUrl("/api/categories"),
+          error: "Category guide is unavailable from the backend right now.",
         },
-      });
+      }, true);
     }
 
     case "plan_flight_route": {
@@ -597,6 +516,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       });
     }
 
+    case "convert_currency": {
+      const from = String(args.from ?? "").toUpperCase();
+      const to = String(args.to ?? "").toUpperCase();
+      if (!from || !to) return textResponse({ ok: false, error: "from and to are required" }, true);
+
+      const params = {
+        amount: args.amount ?? 1,
+        from,
+        to,
+        date: args.date,
+      };
+      const serverResponse = await fetchServerJson("/api/currency-exchange", params);
+      if (serverResponse?.ok && serverResponse?.data) {
+        return textResponse({
+          ok: true,
+          ...RESPONSE_BASE,
+          backend: "travel-agent-server",
+          free: true,
+          results: serverResponse.data,
+        });
+      }
+
+      return textResponse({
+        ok: true,
+        ...RESPONSE_BASE,
+        free: true,
+        results: {
+          ...buildBackendToolRequest("/api/currency-exchange", params),
+          note: "This is a free reference-rate endpoint. Use the request URL directly when the backend is reachable.",
+        },
+      });
+    }
+
     case "creator_experiences": {
       const destination = String(args.destination ?? "").trim();
       if (!destination) return textResponse({ ok: false, error: "destination is required" }, true);
@@ -654,12 +606,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
           x402: {
             price: CREATOR_EXPERIENCES_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
+            network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
           expected_paid_output: {
-            fields: ["recommendation", "confidence", "summary", "story_arc", "weather_fit", "tradeoffs", "next_actions"],
-            recommendation_values: "Clear creator experience planning without exposing internal sources or scoring logic.",
+            fields: ["summary", "story_arc", "experience_options", "weather_fit", "tradeoffs", "follow_up_checks"],
+            response_style: "Creator-ready planning brief with useful surprises, follow-up checks, and no exposed internal source mechanics.",
           },
         },
       });
@@ -703,12 +655,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ...buildBackendToolRequest("/api/day-trip-plan", params),
           x402: {
             price: DAY_TRIP_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
+            network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
           expected_paid_output: {
-            fields: ["candidate_destinations", "local_context", "transit_awareness", "confidence", "next_actions"],
-            recommendation_values: "Original travel-planning guidance with local leads and route fit, without exposing internal scoring logic.",
+            fields: ["experience_options", "planning_awareness", "weather_context", "travel_time_context", "cost_context", "follow_up_checks"],
+            response_style: "Trip-shaped guidance with useful surprises, practical tradeoffs, and no exposed internal source mechanics.",
           },
         },
       });
@@ -745,7 +697,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ...buildBackendToolRequest("/api/weekend-getaway", params),
           x402: {
             price: WEEKEND_GETAWAY_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
+            network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
         },
@@ -779,7 +731,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ...buildBackendToolRequest("/api/weather-aware-plan", params),
           x402: {
             price: WEATHER_AWARE_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
+            network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
         },
@@ -810,8 +762,49 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ...buildBackendToolRequest("/api/transit-providers", params),
           x402: {
             price: MOBILITY_OPTIONS_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
+            network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
+          },
+        },
+      });
+    }
+
+    case "check_trip_disruptions": {
+      const params = {
+        destination: args.destination,
+        origin: args.origin,
+        lat: args.lat,
+        lon: args.lon,
+        trip_date: args.trip_date,
+        time_window: args.time_window,
+        check_reason: args.check_reason,
+        water_site: args.water_site,
+      };
+      const serverResponse = await fetchServerJson("/api/travel-pulse", params);
+      if (serverResponse?.ok && serverResponse?.data) {
+        return textResponse({
+          ok: true,
+          ...RESPONSE_BASE,
+          backend: "travel-agent-server",
+          safety_disclaimer: TRAVEL_PULSE_SAFETY_DISCLAIMER,
+          results: serverResponse.data,
+        });
+      }
+      return textResponse({
+        ok: true,
+        ...RESPONSE_BASE,
+        results: {
+          ...buildBackendToolRequest("/api/travel-pulse", params),
+          x402: {
+            price: TRAVEL_PULSE_PRICE,
+            network: X402_NETWORK,
+            flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
+          },
+          use_case: "Penny-priced travel-risk awareness for one on-demand disruption and emergency check before a trip, with follow-up checks during the trip when the user or agent asks for updated awareness.",
+          safety_disclaimer: TRAVEL_PULSE_SAFETY_DISCLAIMER,
+          expected_paid_output: {
+            fields: ["summary", "severity", "disruptions", "freshness", "traveler_relevance", "backup_considerations", "next_check"],
+            response_style: "Calm travel pulse with concise disruptions, official-channel caveats, a safety disclaimer, and a suggested next check.",
           },
         },
       });
@@ -851,55 +844,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         results: {
           ...buildBackendToolRequest("/api/request-coverage", params),
           note: "This is a free coverage request. The backend adds the town or source set to the future local-vibe coverage queue.",
-        },
-      });
-    }
-
-    case "prepare_trip_price_guidance": {
-      const origin = String(args.origin ?? "").toUpperCase();
-      const destination = String(args.destination ?? "").toUpperCase();
-      const departureAt = args.departure_at ? String(args.departure_at) : undefined;
-      const returnAt = args.return_at ? String(args.return_at) : undefined;
-      const currency = args.currency ? String(args.currency).toUpperCase() : "USD";
-      const market = args.market ? String(args.market).toLowerCase() : "us";
-
-      if (!origin || !destination) {
-        return textResponse({ ok: false, error: "origin and destination are required" }, true);
-      }
-
-      return textResponse({
-        ok: true,
-        ...RESPONSE_BASE,
-        results: {
-          route: { origin, destination },
-          trip_type: returnAt ? "round_trip" : "one_way",
-          endpoint: TRIP_PRICE_GUIDANCE_BASE_URL,
-          method: "GET",
-          request_url: buildTripPriceGuidanceUrl({
-            origin,
-            destination,
-            departure_at: departureAt,
-            return_at: returnAt,
-            currency,
-            market,
-          }),
-          query: {
-            origin,
-            destination,
-            departure_at: departureAt ?? null,
-            return_at: returnAt ?? null,
-            currency,
-            market,
-          },
-          x402: {
-            price: TRIP_PRICE_GUIDANCE_PRICE,
-            network: TRIP_PRICE_GUIDANCE_NETWORK,
-            flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
-          },
-          expected_paid_output: {
-            fields: ["recommendation", "confidence", "summary", "tradeoffs", "freshness", "next_actions"],
-            recommendation_values: "Clear trip price guidance without exposing internal sources or scoring logic.",
-          },
         },
       });
     }

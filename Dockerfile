@@ -16,7 +16,7 @@ WORKDIR /app
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY README.md LICENSE glama.json ./
+COPY README.md LICENSE glama.json server.json smithery.yaml ./
 COPY examples ./examples
 
 USER node

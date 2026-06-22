@@ -1,7 +1,7 @@
 {
   "name": "@forgemeshlabs/travel-agent-mcp",
   "version": "0.1.0",
-  "description": "AI travel agent MCP with FREE category discovery, creator experiences, day-trip and weekend planning, transit options, airport comparisons, timing advice, coverage requests, and x402 trip price guidance.",
+  "description": "Travel Agent MCP with free travel tools plus live x402 Travel Pulse, day-trip, weekend, creator, weather, and mobility services.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -16,8 +16,13 @@
   "files": [
     "dist",
     "README.md",
+    "GLAMA.md",
+    "glama.json",
+    "server.json",
+    "smithery.yaml",
     "LICENSE",
-    "examples"
+    "examples",
+    "docs"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
@@ -39,6 +44,14 @@
     "day-trip",
     "weekend",
     "transit",
+    "travel-pulse",
+    "disruption-alerts",
+    "trip-disruptions",
+    "glama",
+    "mcp-server",
+    "discovery",
+    "seo",
+    "cloudflare",
     "booking-partners",
     "forgemesh"
   ],
