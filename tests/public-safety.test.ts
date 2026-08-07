@@ -42,7 +42,7 @@ const credentialPattern = new RegExp([
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
-    if (entry === ".git" || entry === "node_modules" || entry === "dist") return [];
+    if (entry === ".git" || entry === ".graphify" || entry === "node_modules" || entry === "dist" || entry === "TRAVEL-REPO-MAP.md") return [];
     const path = join(dir, entry);
     const stats = statSync(path);
     return stats.isDirectory() ? files(path) : [path];
