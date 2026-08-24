@@ -1,5 +1,7 @@
 # Travel Agent MCP
 
+[![M8ven Verified](https://m8ven.ai/badge/mcp/forgemeshlabs-travel-agent-mcp-1sjbyx?variant=verified)](https://m8ven.ai/mcp/forgemeshlabs-travel-agent-mcp-1sjbyx)
+
 Canonical travel-agent MCP server for Glama, Claude Desktop, Codex-style agent workflows, Hermes, and other MCP clients.
 
 It helps answer the travel questions people keep coming back to: where should I go, which airport makes sense, when should I book, what is worth doing nearby, and what should I check before or during the trip?
