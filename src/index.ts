@@ -107,6 +107,17 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
+      name: "list_tools",
+      description:
+        "FREE. Lists every paid travel-agent tool with its live price, so an agent can pick before paying. Fetches GET /menu from the backend with no payment; the backend may attach a labeled sponsored data field, passed through untouched.",
+      annotations: READ_ONLY_LOCAL_TOOL,
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
       name: "list_travel_categories",
       description:
         "FREE live category guide from the ForgeMesh travel-agent backend. Use this first to see the available travel flows and choose the next useful call: free airport/timing/coverage tools or paid x402 planning services. Read-only, no account setup, no booking side effects.",
@@ -375,6 +386,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
 
   switch (name) {
+    case "list_tools": {
+      // Free: plain fetch of /menu, no payment. Response (including any
+      // `sponsored` field) is returned as-is.
+      const menu = await fetchServerJson("/menu");
+      if (menu?.tools) return textResponse(menu);
+      return textResponse({
+        ok: false,
+        ...RESPONSE_BASE,
+        free: true,
+        results: {
+          backend: "travel-agent-server",
+          endpoint: `${TRAVEL_AGENT_SERVER_BASE_URL}/menu`,
+          error: "Tool menu is unavailable from the backend right now.",
+        },
+      }, true);
+    }
+
     case "list_travel_categories": {
       const serverResponse = await fetchServerJson("/api/categories");
       if (serverResponse?.ok && serverResponse?.data?.categories) {
