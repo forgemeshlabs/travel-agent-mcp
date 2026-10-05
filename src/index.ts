@@ -100,7 +100,7 @@ function textResponse(payload: unknown, isError = false) {
 }
 
 const server = new Server(
-  { name: "travel-agent-mcp", version: "0.1.0" },
+  { name: "travel-agent-mcp", version: "0.2.3" },
   { capabilities: { tools: {} } },
 );
 
