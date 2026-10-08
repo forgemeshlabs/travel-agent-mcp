@@ -28,7 +28,7 @@ const { createGuard } = createRequire(import.meta.url)("../x402-guard.cjs") as {
     fetchBounded(url: string, init?: Record<string, unknown>): Promise<{ ok: boolean; text: string }>;
   };
 };
-const guard = createGuard({ baseUrl: TRAVEL_AGENT_SERVER_BASE_URL, payTo: ["0x0000000000000000000000000000000000000000"] });
+const guard = createGuard({ baseUrl: TRAVEL_AGENT_SERVER_BASE_URL, payTo: [] });
 const MAX_TEXT_ARG = 2000;
 const X402_NETWORK = "base";
 const CREATOR_EXPERIENCES_PRICE = "$0.25";
