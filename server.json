@@ -15,15 +15,7 @@
       "transport": {
         "type": "stdio"
       },
-      "environmentVariables": [
-        {
-          "name": "TRAVEL_AGENT_SERVER_URL",
-          "description": "Optional ForgeMesh travel-agent backend base URL override. Defaults to https://travel-agent.forgemesh.io.",
-          "isRequired": false,
-          "isSecret": false,
-          "format": "string"
-        }
-      ]
+      "environmentVariables": []
     }
   ],
   "icons": [
