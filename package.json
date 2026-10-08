@@ -15,6 +15,7 @@
   },
   "files": [
     "dist",
+    "x402-guard.cjs",
     "README.md",
     "GLAMA.md",
     "glama.json",
@@ -25,7 +26,7 @@
     "docs"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.32.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

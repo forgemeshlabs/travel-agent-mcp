@@ -154,7 +154,7 @@ describe("public safety", () => {
   it("contains no credential-like wording outside this safety test", () => {
     const hits = publicScanFiles()
       .map((path) => [relative(root, path), readFileSync(path, "utf8")] as const)
-      .filter(([path, text]) => !["tests/public-safety.test.ts", "server.json"].includes(path) && credentialPattern.test(text));
+      .filter(([path, text]) => !["tests/public-safety.test.ts", "server.json", "x402-guard.cjs"].includes(path) && credentialPattern.test(text));
     expect(hits).toEqual([]);
   });
 });

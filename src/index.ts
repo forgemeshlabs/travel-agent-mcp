@@ -5,6 +5,8 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { getAirport } from "./airports.js";
 import { buildExternalBookingLink } from "./links.js";
 import { getTravelTimingAdvice, isInternationalRoute } from "./timing.js";
@@ -16,7 +18,18 @@ const RESPONSE_BASE = {
   booking_language: "booking partners",
 } as const;
 
-const TRAVEL_AGENT_SERVER_BASE_URL = (process.env.TRAVEL_AGENT_SERVER_URL ?? "https://travel-agent.forgemesh.io").replace(/\/+$/, "");
+const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
+
+const TRAVEL_AGENT_SERVER_BASE_URL = "https://travel-agent.forgemesh.io";
+// Vendored CJS guard: bounded (60s / 2 MB / no redirects), same-origin-only fetch. This server never signs
+// payments, so the payTo allowlist is a placeholder required by createGuard.
+const { createGuard } = createRequire(import.meta.url)("../x402-guard.cjs") as {
+  createGuard(opts: { baseUrl: string; payTo: string[] }): {
+    fetchBounded(url: string, init?: Record<string, unknown>): Promise<{ ok: boolean; text: string }>;
+  };
+};
+const guard = createGuard({ baseUrl: TRAVEL_AGENT_SERVER_BASE_URL, payTo: ["0x0000000000000000000000000000000000000000"] });
+const MAX_TEXT_ARG = 2000;
 const X402_NETWORK = "base";
 const CREATOR_EXPERIENCES_PRICE = "$0.25";
 const DAY_TRIP_PRICE = "$0.10";
@@ -41,16 +54,19 @@ function buildServerUrl(path: string, params: Record<string, unknown> = {}) {
 }
 
 async function fetchServerJson(path: string, params: Record<string, unknown> = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4_000);
+  // Free-tool fallbacks must stay quick: give up after 4s even though the guard allows 60s.
+  let timeout: NodeJS.Timeout | undefined;
   try {
-    const response = await fetch(buildServerUrl(path, params), {
-      headers: { accept: "application/json" },
-      signal: controller.signal,
-    });
-    const body = await response.json().catch(() => null);
-    if (!response.ok || !body) return null;
-    return body;
+    const response = await Promise.race([
+      guard.fetchBounded(buildServerUrl(path, params), { headers: { accept: "application/json" } }),
+      new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("backend timeout")), 4_000); }),
+    ]);
+    if (!response.ok) return null;
+    try {
+      return JSON.parse(response.text) || null;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   } finally {
@@ -100,7 +116,7 @@ function textResponse(payload: unknown, isError = false) {
 }
 
 const server = new Server(
-  { name: "travel-agent-mcp", version: "0.2.4" },
+  { name: "travel-agent-mcp", version },
   { capabilities: { tools: {} } },
 );
 
@@ -384,6 +400,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
+
+  for (const [key, value] of Object.entries(args)) {
+    const items = Array.isArray(value) ? value : [value];
+    if (items.some((item) => typeof item === "string" && item.length > MAX_TEXT_ARG)) {
+      return textResponse({ ok: false, error: `${key} must be at most ${MAX_TEXT_ARG} characters` }, true);
+    }
+  }
 
   switch (name) {
     case "list_tools": {

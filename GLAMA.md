@@ -35,12 +35,7 @@ Environment variables schema:
 ```json
 {
   "type": "object",
-  "properties": {
-    "TRAVEL_AGENT_SERVER_URL": {
-      "type": "string",
-      "description": "Override the ForgeMesh backend base URL. Defaults to https://travel-agent.forgemesh.io."
-    }
-  },
+  "properties": {},
   "required": []
 }
 ```

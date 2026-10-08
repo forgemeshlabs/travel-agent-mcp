@@ -120,8 +120,10 @@ node dist/index.js
 The MCP works as a local planning tool and connects to the ForgeMesh travel-agent backend for free discovery, free coverage requests, and paid x402 planning services.
 
 ```bash
-TRAVEL_AGENT_SERVER_URL=https://travel-agent.forgemesh.io npx -y @forgemeshlabs/travel-agent-mcp
+npx -y @forgemeshlabs/travel-agent-mcp
 ```
+
+The backend URL is fixed to `https://travel-agent.forgemesh.io` (no environment override). Every backend request is bounded: 60 s timeout, 2 MB response cap, no redirects, same origin only.
 
 If the backend is unavailable, local airport, route, timing, and booking-link tools still work. Backend-powered tools return the request URL and x402 metadata so clients that can pay with x402 can retry directly.
 
