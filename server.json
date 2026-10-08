@@ -6,12 +6,12 @@
     "url": "https://github.com/forgemeshlabs/travel-agent-mcp",
     "source": "github"
   },
-  "version": "0.2.3",
+  "version": "0.2.4",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@forgemeshlabs/travel-agent-mcp",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "transport": {
         "type": "stdio"
       },

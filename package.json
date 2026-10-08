@@ -1,6 +1,6 @@
 {
   "name": "@forgemeshlabs/travel-agent-mcp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Travel Agent MCP with free travel tools plus live x402 Travel Pulse, day-trip, weekend, creator, weather, and mobility services.",
   "type": "module",
   "main": "dist/index.js",
