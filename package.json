@@ -69,5 +69,8 @@
   "engines": {
     "node": ">=20"
   },
-  "mcpName": "io.github.forgemeshlabs/travel-agent-mcp"
+  "mcpName": "io.github.forgemeshlabs/travel-agent-mcp",
+  "overrides": {
+    "zod": "^4.6.6"
+  }
 }
