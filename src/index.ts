@@ -244,7 +244,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "creator_experiences",
       description:
-        "Connect to the live paid x402 creator-experience service for travelers, creators, influencers, and agents planning a shareable day trip, weekend, layover, or destination story. Use when the traveler cares about visuals, story, timing, food stops, scenic movement, weather-aware backups, or content moments. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Travel content planner for creators: connect to the live paid x402 creator-experience service for travelers, creators, influencers, and agents planning a shareable day trip, weekend, layover, or destination story. Use when the traveler cares about visuals, story, timing, food stops, scenic movement, weather-aware backups, or content moments. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -265,7 +265,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_day_trip",
       description:
-        "Connect to the live paid x402 day-trip service for a destination, route, or origin-based ask. Use when a traveler wants a relaxed day out with timing, water, food, transit, weather, and backup options. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Day trip planner: connect to the live paid x402 day-trip service for a destination, route, or origin-based ask. Use when a traveler wants a relaxed day out with timing, water, food, transit, weather, and backup options. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -291,7 +291,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weekend_getaway",
       description:
-        "Connect to the live paid x402 weekend-getaway service for a short overnight escape. Use when the traveler wants a calmer planning brief with lodging posture, water/weather fit, transportation, and easy backup ideas. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Weekend getaway planner: connect to the live paid x402 weekend-getaway service for a short overnight escape. Use when the traveler wants a calmer planning brief with lodging posture, water/weather fit, transportation, and easy backup ideas. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -315,7 +315,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weather_aware_trip",
       description:
-        "Connect to the live paid x402 weather-aware planning service for a destination or coordinate pair. Use when the traveler wants rain, heat, wind, and indoor backup awareness before committing to outdoor time.",
+        "Weather-aware trip planning: connect to the live paid x402 weather-aware planning service for a destination or coordinate pair. Use when the traveler wants rain, heat, wind, and indoor backup awareness before committing to outdoor time.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -335,7 +335,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "find_transit_options",
       description:
-        "Connect to the live paid x402 mobility-options service for a location and transportation type. Use when the traveler wants transit, rail, ferry, trails, bike/scooter options, or a location-filtered short list before planning the rest of the trip.",
+        "Public transit providers lookup: connect to the live paid x402 mobility-options service for a location and transportation type. Use when the traveler wants transit, rail, ferry, trails, bike/scooter options, or a location-filtered short list before planning the rest of the trip.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -352,7 +352,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "check_trip_disruptions",
       description:
-        "Check for travel disruptions before departure or during a trip with the live paid x402 Travel Pulse service. Each $0.01 call is one on-demand disruption and emergency-awareness check: an agent can run it before the traveler leaves, then call it again during the trip if the user wants hourly, daily, or event-driven updates. Use for weather alerts, natural events, water/flood context, route or destination disruption awareness, travel-risk awareness, and calm backup considerations. Informational only: results can be incomplete, delayed, or incorrect. Not emergency services, not staffed monitoring, and not a substitute for official instructions or local emergency authorities.",
+        "Travel disruption alerts: check for travel disruptions before departure or during a trip with the live paid x402 Travel Pulse service. Each $0.01 call is one on-demand disruption and emergency-awareness check: an agent can run it before the traveler leaves, then call it again during the trip if the user wants hourly, daily, or event-driven updates. Use for weather alerts, natural events, water/flood context, route or destination disruption awareness, travel-risk awareness, and calm backup considerations. Informational only: results can be incomplete, delayed, or incorrect. Not emergency services, not staffed monitoring, and not a substitute for official instructions or local emergency authorities.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
