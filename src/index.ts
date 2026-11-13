@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { getAirport } from "./airports.js";
 import { buildExternalBookingLink } from "./links.js";
+import { backendRefusal, type BackendResult } from "./refusal.js";
 import { getTravelTimingAdvice, isInternationalRoute } from "./timing.js";
 
 const RESPONSE_BASE = {
@@ -53,20 +54,17 @@ function buildServerUrl(path: string, params: Record<string, unknown> = {}) {
   return url.toString();
 }
 
-async function fetchServerJson(path: string, params: Record<string, unknown> = {}) {
+async function fetchServer(path: string, params: Record<string, unknown> = {}): Promise<BackendResult> {
   // Free-tool fallbacks must stay quick: give up after 4s even though the guard allows 60s.
   let timeout: NodeJS.Timeout | undefined;
   try {
     const response = await Promise.race([
       guard.fetchBounded(buildServerUrl(path, params), { headers: { accept: "application/json" } }),
       new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("backend timeout")), 4_000); }),
-    ]);
-    if (!response.ok) return null;
-    try {
-      return JSON.parse(response.text) || null;
-    } catch {
-      return null;
-    }
+    ]) as { status: number; ok: boolean; text: string };
+    let json: unknown = null;
+    try { json = JSON.parse(response.text) || null; } catch { json = null; }
+    return { status: response.status, ok: response.ok, text: response.text, json };
   } catch {
     return null;
   } finally {
@@ -244,7 +242,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "creator_experiences",
       description:
-        "Travel content planner for creators: connect to the live paid x402 creator-experience service for travelers, creators, influencers, and agents planning a shareable day trip, weekend, layover, or destination story. Use when the traveler cares about visuals, story, timing, food stops, scenic movement, weather-aware backups, or content moments. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Travel content planner for creators: weather and local leads for a destination with a generic story outline. Pass destination (place name); optional trip_length, content_style, audience, budget and theme. Returns JSON with weather conditions, nearby breweries and place candidates, and story (story_arc, shot_list), a fixed template that is the same for every destination and labelled general_guidance. $0.25 via x402; not charged when the place cannot be located or no data comes back. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -265,7 +263,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_day_trip",
       description:
-        "Day trip planner: connect to the live paid x402 day-trip service for a destination, route, or origin-based ask. Use when a traveler wants a relaxed day out with timing, water, food, transit, weather, and backup options. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Day trip planner: local leads around a destination for a same-day trip. Pass destination (place name) or lat and lon; optional origin, date, radius_miles (default 25), interests and theme. Returns JSON with breweries and place candidates found inside the radius, plus general planning notes and a transit strategy from a curated registry, each labelled in data_basis. Hours, fees and closures are not verified. $0.10 via x402; not charged when the place cannot be located or no local leads are found. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -291,7 +289,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weekend_getaway",
       description:
-        "Weekend getaway planner: connect to the live paid x402 weekend-getaway service for a short overnight escape. Use when the traveler wants a calmer planning brief with lodging posture, water/weather fit, transportation, and easy backup ideas. The MCP can return live server output or x402 request metadata for clients that can pay with x402.",
+        "Weekend getaway planner: weather and local leads for a 2-3 day trip to a destination. Pass destination (place name) or lat and lon; optional origin, start_date, end_date, transportation_modes and budget. Returns JSON with the forecast for the start date, breweries and places near the destination, and weekend_shape and lodging_posture, which are general template guidance and labelled so. No booking inventory or prices. $0.25 via x402; not charged when the place cannot be located or no data comes back. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -315,7 +313,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "plan_weather_aware_trip",
       description:
-        "Weather-aware trip planning: connect to the live paid x402 weather-aware planning service for a destination or coordinate pair. Use when the traveler wants rain, heat, wind, and indoor backup awareness before committing to outdoor time.",
+        "Weather-aware trip planning: is the weather right for an outdoor plan? Pass destination (place name) or lat and lon; optional date (YYYY-MM-DD, up to 15 days ahead), time_window, plan_type and transportation_modes. Returns JSON with the forecast for that day (current conditions when no date is sent), a rule-based outdoor_fit rating, tradeoffs and transportation exposure notes. $0.03 via x402; not charged for unknown places, unsupported dates or a weather source failure. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
@@ -335,44 +333,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "find_transit_options",
       description:
-        "Public transit providers lookup: connect to the live paid x402 mobility-options service for a location and transportation type. Use when the traveler wants transit, rail, ferry, trails, bike/scooter options, or a location-filtered short list before planning the rest of the trip.",
+        "Public transit providers lookup: transit agencies for a US metro area from a curated registry. Pass location (city or agency name, required); optional transportation_type (rail, metro, bus, ferry) and trip_style. Returns JSON with matches, each with provider_id, name, transportation modes and a verification URL. The registry is hand-curated and covers a limited set of US metro areas; it does not confirm departures, fares or disruptions. $0.01 via x402; a missing location or no match is refused without charge. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
         properties: {
-          location: { type: "string" },
-          transportation_type: { type: "string" },
+          location: { type: "string", description: "City or transit agency name (US metro areas in the curated registry)." },
+          transportation_type: { type: "string", description: "rail, metro, bus or ferry." },
           trip_style: { type: "string" },
           origin: { type: "string" },
           destination: { type: "string" },
         },
-        required: [],
+        required: ["location"],
       },
     },
     {
       name: "check_trip_disruptions",
       description:
-        "Travel disruption alerts: check for travel disruptions before departure or during a trip with the live paid x402 Travel Pulse service. Each $0.01 call is one on-demand disruption and emergency-awareness check: an agent can run it before the traveler leaves, then call it again during the trip if the user wants hourly, daily, or event-driven updates. Use for weather alerts, natural events, water/flood context, route or destination disruption awareness, travel-risk awareness, and calm backup considerations. Informational only: results can be incomplete, delayed, or incorrect. Not emergency services, not staffed monitoring, and not a substitute for official instructions or local emergency authorities.",
+        "Travel disruption alerts near a location: active emergency signals around a latitude and longitude. Pass lat and lon (both required; the backend does not geocode place names here, so look up coordinates first); optional radius_miles, lookback_hours, signal_types (earthquake, weather_alert, wildfire, severe_storm, water_level) and water_site. Returns JSON with status (attention or clear), signals, and which sources answered or failed. Weather alerts cover the United States only. $0.01 via x402; invalid coordinates and a check where no source answers are refused without charge. Informational only: results can be incomplete, delayed, or incorrect; not emergency services and not a substitute for official instructions. This MCP never pays: it returns the live result if the backend answers, or the request URL and x402 payment metadata for a client that can pay.",
       annotations: READ_ONLY_EXTERNAL_LINK_TOOL,
       inputSchema: {
         type: "object",
         properties: {
-          destination: { type: "string", description: "Destination, city, region, route, airport area, or place to check." },
-          origin: { type: "string", description: "Optional origin or route start." },
-          lat: { type: "string", description: "Latitude for a point-specific pulse check." },
-          lon: { type: "string", description: "Longitude for a point-specific pulse check." },
-          trip_date: { type: "string", description: "Trip date in YYYY-MM-DD format, if known." },
-          time_window: { type: "string", description: "Relevant window, such as before departure, next 3 hours, today, overnight, or during trip." },
-          check_reason: { type: "string", description: "Why the agent is checking, such as pre_trip, repeat_trip_check, weather_shift, event_day, or traveler_check_in." },
-          water_site: { type: "string", description: "Optional water gauge/site id when the traveler cares about flood or river context." },
+          lat: { type: "number", description: "Latitude (required)." },
+          lon: { type: "number", description: "Longitude (required)." },
+          radius_miles: { type: "number", description: "Search radius in miles." },
+          lookback_hours: { type: "number", description: "How far back to look for signals, in hours." },
+          signal_types: { type: "string", description: "Comma-separated: earthquake, weather_alert, wildfire, severe_storm, water_level." },
+          trip_phase: { type: "string", description: "Optional context, such as pre_trip or active travel." },
+          water_site: { type: "string", description: "Optional water gauge/site id for flood or river context." },
         },
-        required: [],
+        required: ["lat", "lon"],
       },
     },
     {
       name: "request_local_coverage",
       description:
-        "FREE live backend call for requesting coverage for a town, neighborhood, local ritual, free experience, or source set. Use this when you want the system to remember a place worth watching: local vibe, freebie list, sunset walk, opening-soon pattern, or creator angle.",
+        "FREE live backend call for requesting coverage for a town, neighborhood, local ritual, free experience, or source set. At least one of town, location or destination is required (otherwise the backend answers 400 invalid_request, charged:false). Use this when you want the system to remember a place worth watching: local vibe, freebie list, sunset walk, or creator angle.",
       annotations: READ_ONLY_LOCAL_TOOL,
       inputSchema: {
         type: "object",
@@ -412,7 +409,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case "list_tools": {
       // Free: plain fetch of /menu, no payment. Response (including any
       // `sponsored` field) is returned as-is.
-      const menu = await fetchServerJson("/menu");
+      const rawMenu = await fetchServer("/menu");
+      const menuRefusal = backendRefusal(rawMenu, buildServerUrl("/menu"));
+      if (menuRefusal) return menuRefusal;
+      const menu = rawMenu?.json as any;
       if (menu?.tools) return textResponse(menu);
       return textResponse({
         ok: false,
@@ -427,7 +427,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "list_travel_categories": {
-      const serverResponse = await fetchServerJson("/api/categories");
+      const raw = await fetchServer("/api/categories");
+      const refusal = backendRefusal(raw, buildServerUrl("/api/categories"));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data?.categories) {
         return textResponse({
           ok: true,
@@ -578,7 +581,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         to,
         date: args.date,
       };
-      const serverResponse = await fetchServerJson("/api/currency-exchange", params);
+      const raw = await fetchServer("/api/currency-exchange", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/currency-exchange", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -606,7 +612,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const mustInclude = splitList(args.must_include);
       const avoid = splitList(args.avoid);
-      const serverResponse = await fetchServerJson("/api/creator-experiences", {
+      const raw = await fetchServer("/api/creator-experiences", {
         destination,
         trip_length: args.trip_length,
         content_style: args.content_style,
@@ -617,6 +623,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         must_include: mustInclude,
         avoid,
       });
+      const refusal = backendRefusal(raw, buildServerUrl("/api/creator-experiences", {
+        destination,
+        trip_length: args.trip_length,
+        content_style: args.content_style,
+        budget: args.budget,
+        audience: args.audience,
+        mobility: args.mobility,
+        season: args.season,
+        must_include: mustInclude,
+        avoid,
+      }));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
 
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
@@ -661,8 +680,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
           expected_paid_output: {
-            fields: ["summary", "story_arc", "experience_options", "weather_fit", "tradeoffs", "follow_up_checks"],
-            response_style: "Creator-ready planning brief with useful surprises, follow-up checks, and no exposed internal source mechanics.",
+            fields: ["weather conditions", "breweries and place candidates", "story (story_arc, shot_list), a fixed template labelled general_guidance"],
+            response_style: "Weather and local leads plus a generic story outline that is the same for every destination.",
           },
         },
       });
@@ -671,7 +690,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case "plan_day_trip": {
       const destination = String(args.destination ?? "").trim();
       const origin = String(args.origin ?? "").trim();
-      if (!destination && !origin) return textResponse({ ok: false, error: "origin or destination is required" }, true);
+      if (!destination && !(args.lat && args.lon)) return textResponse({ ok: false, charged: false, error: "destination (or lat and lon) is required" }, true);
 
       const params = {
         origin,
@@ -689,7 +708,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         budget: args.budget,
         include_local_context: args.include_local_context,
       };
-      const serverResponse = await fetchServerJson("/api/day-trip-plan", params);
+      const raw = await fetchServer("/api/day-trip-plan", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/day-trip-plan", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -710,8 +732,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
           expected_paid_output: {
-            fields: ["experience_options", "planning_awareness", "weather_context", "travel_time_context", "cost_context", "follow_up_checks"],
-            response_style: "Trip-shaped guidance with useful surprises, practical tradeoffs, and no exposed internal source mechanics.",
+            fields: ["breweries and place candidates inside the radius", "general planning notes and transit strategy, each labelled in data_basis"],
+            response_style: "Local leads only. Hours, fees and closures are not verified.",
           },
         },
       });
@@ -732,7 +754,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         trip_style: args.trip_style,
         destination_currency: args.destination_currency,
       };
-      const serverResponse = await fetchServerJson("/api/weekend-getaway", params);
+      const raw = await fetchServer("/api/weekend-getaway", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/weekend-getaway", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -766,7 +791,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         transportation_modes: args.transportation_modes,
         max_distance_or_travel_time: args.max_distance_or_travel_time,
       };
-      const serverResponse = await fetchServerJson("/api/weather-aware-plan", params);
+      const raw = await fetchServer("/api/weather-aware-plan", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/weather-aware-plan", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -797,7 +825,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         origin: args.origin,
         destination: args.destination,
       };
-      const serverResponse = await fetchServerJson("/api/transit-providers", params);
+      const raw = await fetchServer("/api/transit-providers", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/transit-providers", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -821,17 +852,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "check_trip_disruptions": {
+      const lat = Number(args.lat);
+      const lon = Number(args.lon);
+      if (args.lat === undefined || args.lon === undefined || args.lat === "" || args.lon === "" || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return textResponse({ ok: false, charged: false, error: "lat and lon are required (numbers); the backend does not geocode place names for travel pulse" }, true);
+      }
       const params = {
-        destination: args.destination,
-        origin: args.origin,
-        lat: args.lat,
-        lon: args.lon,
-        trip_date: args.trip_date,
-        time_window: args.time_window,
-        check_reason: args.check_reason,
+        lat,
+        lon,
+        radius_miles: args.radius_miles,
+        lookback_hours: args.lookback_hours,
+        trip_phase: args.trip_phase,
+        signal_types: args.signal_types,
         water_site: args.water_site,
       };
-      const serverResponse = await fetchServerJson("/api/travel-pulse", params);
+      const raw = await fetchServer("/api/travel-pulse", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/travel-pulse", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,
@@ -851,11 +889,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             network: X402_NETWORK,
             flow: "Request the URL, handle the 402 Payment Required challenge, complete x402 payment, then retry the same request.",
           },
-          use_case: "Penny-priced travel-risk awareness for one on-demand disruption and emergency check before a trip, with follow-up checks during the trip when the user or agent asks for updated awareness.",
           safety_disclaimer: TRAVEL_PULSE_SAFETY_DISCLAIMER,
           expected_paid_output: {
-            fields: ["summary", "severity", "disruptions", "freshness", "traveler_relevance", "backup_considerations", "next_check"],
-            response_style: "Calm travel pulse with concise disruptions, official-channel caveats, a safety disclaimer, and a suggested next check.",
+            fields: ["status (attention or clear)", "signals", "sources answered or failed"],
+            response_style: "Active emergency signals near the coordinates. Weather alerts cover the United States only.",
           },
         },
       });
@@ -878,7 +915,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         notes: args.notes,
         recheck_days: args.recheck_days,
       };
-      const serverResponse = await fetchServerJson("/api/request-coverage", params);
+      const raw = await fetchServer("/api/request-coverage", params);
+      const refusal = backendRefusal(raw, buildServerUrl("/api/request-coverage", params));
+      if (refusal) return refusal;
+      const serverResponse = raw?.json as any;
       if (serverResponse?.ok && serverResponse?.data) {
         return textResponse({
           ok: true,

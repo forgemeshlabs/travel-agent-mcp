@@ -44,16 +44,16 @@ Use this MCP when an agent needs a travel conversation that can keep going:
 - Start with `list_travel_categories` to see what is available.
 - Use `convert_currency`, `get_airport_details`, and `get_travel_timing_advice` as free utility calls.
 - Use `request_local_coverage` when a town, ritual, route, or creator angle should be watched or added.
-- Use `check_trip_disruptions` before departure, then have the user or their agent call it again during the trip if they want hourly or event-driven updates.
+- Use `check_trip_disruptions` with the traveler's coordinates (lat and lon) before departure, and again during the trip if the user wants another check.
 - Use paid planning tools when the traveler needs a richer answer than a web search can comfortably assemble.
 
 ## For Travel, Insurance, and Assistance Teams
 
-Travel Pulse gives an app, policy workflow, concierge desk, or agentic travel assistant a penny-priced check for the question that matters before and during a trip: should this traveler know something right now?
+Travel Pulse gives an app, policy workflow, concierge desk, or agentic travel assistant a penny-priced check for the question that matters before and during a trip: are there active emergency signals near this traveler right now?
 
 It is not a staffed rescue operation, emergency dispatch, insurance product, or replacement for official instructions. Results can be incomplete, delayed, or wrong. Travelers and agents should verify important safety decisions with official government, weather, transportation, venue, and emergency sources. In an emergency, contact local emergency services immediately.
 
-It is a practical awareness layer that an AI or client app can call before departure and during the trip to look for disruption, emergency, weather, water, route, or destination concerns.
+It is a practical awareness layer that an AI or client app can call before departure and during the trip to look for earthquake, weather alert, wildfire, severe storm and water level signals near a coordinate pair.
 
 That makes it easy to package as a feature: "we check your trip before you leave, and your assistant can check again while you travel." The partner controls when to call it, how often to call it, and what to do with the result.
 
@@ -189,7 +189,7 @@ The free calls let agents validate a place, price a rough spend, collect intent,
 
 `check_trip_disruptions` is the simple paid check for an important travel question: what should this traveler know before they go, or before they make the next move?
 
-Each call is one on-demand check. Use it before departure, then have the user or their agent call it again during the trip if they want hourly, daily, or event-driven updates. An agent can check for weather alerts, natural events, water or flood context, and destination disruptions, then decide whether to reassure the traveler, suggest a calm backup, or check again later.
+Each call is one on-demand check for a latitude and longitude (both required; place names are not geocoded for this route). Optional radius_miles, lookback_hours, signal_types (earthquake, weather_alert, wildfire, severe_storm, water_level) and water_site. It returns status (attention or clear), the active signals, and which sources answered or failed. Weather alerts cover the United States only. Invalid coordinates and a check where no source answers are refused without charge.
 
 At `$0.01` per call, it is cheap enough for the moments where travel-risk awareness used to feel too expensive to automate: before departure, after a storm shifts, when a route changes, or while a traveler is already moving.
 
@@ -214,7 +214,7 @@ The MCP sends paid planning requests to the live ForgeMesh x402 server:
 - `plan_weather_aware_trip` -> `GET https://travel-agent.forgemesh.io/api/weather-aware-plan`
 - `find_transit_options` -> `GET https://travel-agent.forgemesh.io/api/transit-providers`
 
-The paid services are where the answer gets richer: trip-shaped briefs, weather and movement awareness, creator-ready story arcs, practical tradeoffs, and useful next checks.
+The paid services return local leads (breweries and place candidates), forecasts, a curated transit-agency registry for a limited set of US metro areas, and general template guidance that the responses label as such. They do not return booking inventory, prices, hours or fees. If a backend route refuses a request, the tool returns the HTTP status, `charged:false` and the reason from the service.
 
 ## x402 Implementation
 
